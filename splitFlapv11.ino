@@ -1,4 +1,3 @@
-//conio
 #include <AccelStepper.h>
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
@@ -14,15 +13,18 @@ Adafruit_MotorShield AFMS3(0x62);                         // 00010
 Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
+const int box                 = 1;  //numéro de la boite :)
+const int offSetZero          = 0;                       //offset général à la suite de la calibration
+const int boxOffset[3][8]     = {{0,0,0,0,0,0,0,0},   {0,0,0,0,0,0,0,0},    {0,0,0,0,0,0,0,0}}; //offset pécis
+
 const bool calibrationOnly    = true;
 float acceleration            = 10000.0;
 const int nombreDeMoteur      = 8;
 const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
 const int frequenceCalibration = 5;                     //calibration toute les 20 animations
-const int vitesseCalibration  = 1000;                    //vitesse calibration.
+const int vitesseCalibration  = 500;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 100;
-const int offSetZero          = 0;                       //toujours négatif
 int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
 const int nombreAnimation     = 1;                       //il y a 1 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
@@ -41,14 +43,13 @@ bool waitBool                 = false;                   //utilitaire pour delay
 bool capteurState[8]           = {LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; //états des capteurs 0 = Passage de l'aimant | 1 = rien
 int lastAnimation             = 0;                       //animation pécedente
 int animationCounter          = 0;                       //compteur d'animation
-bool precalib                 = true;
-int counterSample             = 0;
-int somme                     = 0;
-bool aetesurzero              = false;
-bool stopalalaprochaine       = false;
 int positionPrecedente        = 0;
 bool oneTime                  = true;
 int aquisition                = 0;
+bool addoffset                = false;
+bool arretSurZero             = false;
+bool premiereCaptation        = true;
+
 Adafruit_StepperMotor *stepperContainer[8] = {
   AFMS4.getStepper(200, 1)/*1*/,
   AFMS3.getStepper(200, 1)/*2*/,
@@ -213,27 +214,36 @@ void updateAnimation() {
 }
 
 void  calibration() {
-   //si sur 0 -> go to 100step et a partir de là va a 0.
   
-   capteurState[pointeur] = digitalRead(capteur[pointeur]);
-
-  if(capteurState[pointeur] == 1){
-    //methode avec timing  
-    if(aetesurzero){
-      stopalalaprochaine = true;
-    }
+   //si sur 0 -> go to 100step, a partir de là, va a 0.
+   capteurState[pointeur] = digitalRead(capteur[pointeur]);   
+  if(aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation){
+    //a fais soit 9999 step, soit 100 step depuis zero et donc bool changing
+    aStepper[pointeur].move(200);
+    //arret sur le prochain zero
+    arretSurZero = true;   
   }
   if(capteurState[pointeur] == 0 ){
-    //j'ai besoin de faire un tour pour verif
-    if(!stopalalaprochaine){
-    counterSample++;
-    aetesurzero = true;
-    }else{
-      pointeur++;
-      aetesurzero        = false;
-      stopalalaprochaine = false;
+    //j'ai besoin de faire un 1/2 tour pour verif
+    if(premiereCaptation){
+     aStepper[pointeur].move(100);
+     premiereCaptation = false;   
+    }
+    if(arretSurZero){    
+      arretSurZero = false;
+      aStepper[pointeur].move(offSetZero+boxOffset[box-1][pointeur]);
+      absPosStepper[pointeur] = 0;
+      addoffset = true;
     }
   }
+  if(addoffset && aStepper[pointeur].distanceToGo() == 0){
+  
+    pointeur++;
+  
+    addoffset = false;  
+    premiereCaptation = true;  
+  }
+  
   if(pointeur < nombreDeMoteur){
     aStepper[pointeur].run();
   }else{
