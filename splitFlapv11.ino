@@ -18,13 +18,13 @@ const int offSetZero          = 0;                       //offset général à l
 const int boxOffset[3][8]     = {{0,0,0,0,0,0,0,0},   {0,0,0,0,0,0,0,0},    {0,0,0,0,0,0,0,0}}; //offset pécis
 
 const bool calibrationOnly    = true;
-float acceleration            = 10000.0;
 const int nombreDeMoteur      = 8;
 const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
 const int frequenceCalibration = 5;                     //calibration toute les 20 animations
-const int vitesseCalibration  = 500;                    //vitesse calibration.
+const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
-const int vitesseAnimation    = 100;
+const int vitesseAnimation    = 1000;
+float acceleration            = 1000.0;
 int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
 const int nombreAnimation     = 1;                       //il y a 1 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
@@ -108,7 +108,12 @@ void loop() {
     calibration();
   } else {
     //update des animations en temps normal
-    //updateAnimation();
+    updateAnimation();
+   /* for(int i = 0; i<nombreDeMoteur;i++){
+      s.print(absPosStepper[i]);
+      s.print(" ");
+    }
+    s.println( " ");*/
    // compteurDeStep();
   }
 }
@@ -179,12 +184,11 @@ int deplacement(int ActualPosition, int Destination) {
     if (Destination > ActualPosition) { //si il ne FAUT PAS repasser par la postion 0 (origine)
       stepToMove = Destination - ActualPosition;
     }
+    /*
     if (Destination == ActualPosition) {
       stepToMove = 200;
     }
-    if (Destination == 9999) {
-      stepToMove = 0;
-    }
+    */
   }
   return stepToMove;
 }
@@ -210,46 +214,6 @@ void updateAnimation() {
       delayingTime = 0;
       setMovement(numeroAnimation);
     }
-  }
-}
-
-void  calibration() {
-  
-   //si sur 0 -> go to 100step, a partir de là, va a 0.
-   capteurState[pointeur] = digitalRead(capteur[pointeur]);   
-  if(aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation){
-    //a fais soit 9999 step, soit 100 step depuis zero et donc bool changing
-    aStepper[pointeur].move(200);
-    //arret sur le prochain zero
-    arretSurZero = true;   
-  }
-  if(capteurState[pointeur] == 0 ){
-    //j'ai besoin de faire un 1/2 tour pour verif
-    if(premiereCaptation){
-     aStepper[pointeur].move(100);
-     premiereCaptation = false;   
-    }
-    if(arretSurZero){    
-      arretSurZero = false;
-      aStepper[pointeur].move(offSetZero+boxOffset[box-1][pointeur]);
-      absPosStepper[pointeur] = 0;
-      addoffset = true;
-    }
-  }
-  if(addoffset && aStepper[pointeur].distanceToGo() == 0){
-  
-    pointeur++;
-  
-    addoffset = false;  
-    premiereCaptation = true;  
-  }
-  
-  if(pointeur < nombreDeMoteur){
-    aStepper[pointeur].run();
-  }else{
-    s.println("fin calibration");
-    calibrationBool = false;
-    
   }
 }
 
@@ -283,15 +247,16 @@ void wait(int DelayingTime) {
 int randomAnimation() {
   int value = 0;
   animationCounter++;
-
+  s.println(animationCounter);
   if (animationCounter % frequenceCalibration == 0) {
     value = 99;
     calibrationBool = true;
+    setMovement(99);
   } else {
-    value = floor(random(0, nombreAnimation - 1));
-    value = 0;
+    //value = floor(random(0, nombreAnimation - 1));
+    value = 2;
   }
-  lastAnimation = value;
+  
 
   return value;
 }
@@ -313,4 +278,46 @@ void compteurDeStep(){
     if(digitalRead(capteur[4]) == HIGH){
       oneTime = true;
     } 
+}
+
+void  calibration() {
+  
+   //si sur 0 -> go to 100step, a partir de là, va a 0.
+   capteurState[pointeur] = digitalRead(capteur[pointeur]);   
+  if(aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset){
+    //a fais soit 9999 step, soit 100 step depuis zero et donc bool changing
+    aStepper[pointeur].move(200);
+    //arret sur le prochain zero
+    arretSurZero = true;   
+  }
+  if(capteurState[pointeur] == 0 ){
+    //j'ai besoin de faire un 1/2 tour pour verif
+    if(premiereCaptation){
+     aStepper[pointeur].move(100);
+     premiereCaptation = false;   
+    }
+    if(arretSurZero){    
+      arretSurZero = false;
+      aStepper[pointeur].move(10);
+      addoffset = true;
+    }
+  }
+  if(addoffset && aStepper[pointeur].distanceToGo() == 0){
+    aStepper[pointeur].move(0);
+    absPosStepper[pointeur] = 0;
+    pointeur++;
+  
+    addoffset = false;  
+    premiereCaptation = true;  
+  }
+  
+  if(pointeur < nombreDeMoteur){
+    aStepper[pointeur].run();
+  }else{
+    s.println("fin calibration");
+
+    calibrationBool = false;
+    setMovement(randomAnimation());
+    pointeur = 0;
+  }
 }
