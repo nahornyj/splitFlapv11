@@ -15,18 +15,18 @@ Adafruit_MotorShield AFMS4(0x63);                         // 00011
 //variables statiques
 const int box                 = 1;  //numéro de la boite :)
 const int offSetZero          = 0;                       //offset général à la suite de la calibration
-const int boxOffset[3][8]     = {{0,0,0,0,0,0,0,0},   {0,0,0,0,0,0,0,0},    {0,0,0,0,0,0,0,0}}; //offset pécis
+const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
 
 const bool calibrationOnly    = true;
 const int nombreDeMoteur      = 8;
 const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
-const int frequenceCalibration = 5;                     //calibration toute les 20 animations
+const int frequenceCalibration = 2;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 1000;
 float acceleration            = 1000.0;
 int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 1;                       //il y a 1 animation dans la classe resources en ce moment.
+const int nombreAnimation     = 3;                       //il y a 3 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
 
 //variables
@@ -45,7 +45,6 @@ int lastAnimation             = 0;                       //animation pécedente
 int animationCounter          = 0;                       //compteur d'animation
 int positionPrecedente        = 0;
 bool oneTime                  = true;
-int aquisition                = 0;
 bool addoffset                = false;
 bool arretSurZero             = false;
 bool premiereCaptation        = true;
@@ -106,30 +105,26 @@ void loop() {
   if (calibrationBool) {
     //update moteur pour calibration
     calibration();
+
   } else {
     //update des animations en temps normal
     updateAnimation();
-   /* for(int i = 0; i<nombreDeMoteur;i++){
-      s.print(absPosStepper[i]);
-      s.print(" ");
-    }
-    s.println( " ");*/
-   // compteurDeStep();
+
   }
 }
 void setMovement(int Id) {
   if (Id == 99) {
     calibrationBool == true;
-    setGeneralValues(vitesseCalibration, accelerationCalibration); //éfinir une plus petite vitesse pour la calibration;
-
     for (int i = 0; i < nombreDeMoteur; i++) {
+      aStepper[i].setMaxSpeed(vitesseCalibration);
+      aStepper[i].setAcceleration(accelerationCalibration);
       aStepper[i].move(9999);   // plusieurs tours pour être sur d'atteindre le capteur.
     }
   } else {
     numeroAnimation = Id;
-    setGeneralValues(vitesseAnimation, acceleration);
-
     for (int i = 0; i < nombreDeMoteur; i++) {
+      aStepper[i].setMaxSpeed(vitesseAnimation);
+      aStepper[i].setAcceleration(acceleration);
       aStepper[i].move(deplacement(absPosStepper[i], anim.getValue(numeroAnimation, curseur, i)));
 
       //update absPos
@@ -139,6 +134,7 @@ void setMovement(int Id) {
 
     if (anim.getValue(numeroAnimation, curseur, 8) != 0) { // si il y a du delay
       delayingTime = anim.getValue(numeroAnimation, curseur, 8);
+      //delayingTime = 0;
     } else {
       delayingTime = 0;
     }
@@ -150,22 +146,54 @@ void setMovement(int Id) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //FONCTIONS UTILITAIRES///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void forwardstep1() { stepperContainer[0]->onestep(FORWARD, SINGLE);}
-void backwardstep1() { stepperContainer[0]->onestep(BACKWARD, SINGLE);}
-void forwardstep2() {  stepperContainer[1]->onestep(FORWARD, SINGLE);}
-void backwardstep2() {  stepperContainer[1]->onestep(BACKWARD, SINGLE);}
-void forwardstep3() { stepperContainer[2]->onestep(FORWARD, SINGLE);}
-void backwardstep3() {  stepperContainer[2]->onestep(BACKWARD, SINGLE);}
-void forwardstep4() { stepperContainer[3]->onestep(FORWARD, SINGLE);}
-void backwardstep4() {  stepperContainer[3]->onestep(BACKWARD, SINGLE);}
-void forwardstep5() {  stepperContainer[4]->onestep(FORWARD, SINGLE);}
-void backwardstep5() {  stepperContainer[4]->onestep(BACKWARD, SINGLE);}
-void forwardstep6() { stepperContainer[5]->onestep(FORWARD, SINGLE);}
-void backwardstep6() {  stepperContainer[5]->onestep(BACKWARD, SINGLE);}
-void forwardstep7() {  stepperContainer[6]->onestep(FORWARD, SINGLE);}
-void backwardstep7() {  stepperContainer[6]->onestep(BACKWARD, SINGLE);}
-void forwardstep8() {  stepperContainer[7]->onestep(FORWARD, SINGLE);}
-void backwardstep8() {  stepperContainer[7]->onestep(BACKWARD, SINGLE);}
+void forwardstep1() {
+  stepperContainer[0]->onestep(FORWARD, SINGLE);
+}
+void backwardstep1() {
+  stepperContainer[0]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep2() {
+  stepperContainer[1]->onestep(FORWARD, SINGLE);
+}
+void backwardstep2() {
+  stepperContainer[1]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep3() {
+  stepperContainer[2]->onestep(FORWARD, SINGLE);
+}
+void backwardstep3() {
+  stepperContainer[2]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep4() {
+  stepperContainer[3]->onestep(FORWARD, SINGLE);
+}
+void backwardstep4() {
+  stepperContainer[3]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep5() {
+  stepperContainer[4]->onestep(FORWARD, SINGLE);
+}
+void backwardstep5() {
+  stepperContainer[4]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep6() {
+  stepperContainer[5]->onestep(FORWARD, SINGLE);
+}
+void backwardstep6() {
+  stepperContainer[5]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep7() {
+  stepperContainer[6]->onestep(FORWARD, SINGLE);
+}
+void backwardstep7() {
+  stepperContainer[6]->onestep(BACKWARD, SINGLE);
+}
+void forwardstep8() {
+  stepperContainer[7]->onestep(FORWARD, SINGLE);
+}
+void backwardstep8() {
+  stepperContainer[7]->onestep(BACKWARD, SINGLE);
+}
 
 void setGeneralValues(float vitesse, float accel) {
   for (int i = 0; i < nombreDeMoteur; i++) {
@@ -184,17 +212,12 @@ int deplacement(int ActualPosition, int Destination) {
     if (Destination > ActualPosition) { //si il ne FAUT PAS repasser par la postion 0 (origine)
       stepToMove = Destination - ActualPosition;
     }
-    /*
-    if (Destination == ActualPosition) {
-      stepToMove = 200;
-    }
-    */
   }
   return stepToMove;
 }
 
 void updateAnimation() {
-
+  
   decompteMoteur = 0;
   for (int i = 0; i < nombreDeMoteur; i++) {
     if (aStepper[i].distanceToGo() == 0 ) {
@@ -202,12 +225,13 @@ void updateAnimation() {
     }
     aStepper[i].run();
   }
+
   if (decompteMoteur == nombreDeMoteur && waitBool == false) {
     nextStep(delayingTime);
   }
 
   if (waitBool) {
-
+    s.println("j'attend");
     actualTime = millis();
     if (actualTime >= targetTime) {
       waitBool = false;
@@ -231,6 +255,7 @@ void nextStep(int DelayingTime) {
   //sytème de delay
   if (DelayingTime == 0 ) {
     setMovement(numeroAnimation);
+    waitBool = false;
   }
   else {
     wait(delayingTime);
@@ -242,82 +267,83 @@ void wait(int DelayingTime) {
   int delayingTime = DelayingTime;
   actualTime = millis();
   targetTime = millis() + delayingTime;
+ 
 }
 
 int randomAnimation() {
   int value = 0;
   animationCounter++;
-  s.println(animationCounter);
+  //s.println(animationCounter);
   if (animationCounter % frequenceCalibration == 0) {
     value = 99;
-    calibrationBool = true;
-    setMovement(99);
+    calibrationBool = true; 
   } else {
-    //value = floor(random(0, nombreAnimation - 1));
     value = 2;
+    calibrationBool = false;
   }
-  
+
 
   return value;
 }
 
-void checkSensorPosition(){
-  for(int i=0;i<8;i++){
-    capteurState[i] = digitalRead(capteur[i]);  
-   }
+void checkSensorPosition() {
+  for (int i = 0; i < 8; i++) {
+    capteurState[i] = digitalRead(capteur[i]);
+  }
 }
 
-void compteurDeStep(){
- 
-   if(digitalRead(capteur[4]) == LOW && oneTime){  
-     oneTime = false;
-      int value = aStepper[4].currentPosition()-positionPrecedente;
-      s.println(value);   
-     positionPrecedente = aStepper[4].currentPosition();
-    }
-    if(digitalRead(capteur[4]) == HIGH){
-      oneTime = true;
-    } 
+void compteurDeStep() {
+
+  if (digitalRead(capteur[4]) == LOW && oneTime) {
+    oneTime = false;
+    int value = aStepper[4].currentPosition() - positionPrecedente;
+    //s.println(value);
+    positionPrecedente = aStepper[4].currentPosition();
+  }
+  if (digitalRead(capteur[4]) == HIGH) {
+    oneTime = true;
+  }
 }
 
 void  calibration() {
-  
-   //si sur 0 -> go to 100step, a partir de là, va a 0.
-   capteurState[pointeur] = digitalRead(capteur[pointeur]);   
-  if(aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset){
+
+  //si sur 0 -> go to 100step, a partir de là, va a 0.
+  capteurState[pointeur] = digitalRead(capteur[pointeur]);
+  if (aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset) {
     //a fais soit 9999 step, soit 100 step depuis zero et donc bool changing
     aStepper[pointeur].move(200);
     //arret sur le prochain zero
-    arretSurZero = true;   
+    arretSurZero = true;
   }
-  if(capteurState[pointeur] == 0 ){
+  if (capteurState[pointeur] == 0 ) {
     //j'ai besoin de faire un 1/2 tour pour verif
-    if(premiereCaptation){
-     aStepper[pointeur].move(100);
-     premiereCaptation = false;   
+    if (premiereCaptation) {
+      aStepper[pointeur].move(100);
+      premiereCaptation = false;
     }
-    if(arretSurZero){    
+    if (arretSurZero) {
       arretSurZero = false;
       aStepper[pointeur].move(10);
       addoffset = true;
     }
   }
-  if(addoffset && aStepper[pointeur].distanceToGo() == 0){
+  if (addoffset && aStepper[pointeur].distanceToGo() == 0) {
     aStepper[pointeur].move(0);
     absPosStepper[pointeur] = 0;
     pointeur++;
-  
-    addoffset = false;  
-    premiereCaptation = true;  
-  }
-  
-  if(pointeur < nombreDeMoteur){
-    aStepper[pointeur].run();
-  }else{
-    s.println("fin calibration");
 
+    addoffset = false;
+    premiereCaptation = true;
+  }
+
+  if (pointeur < nombreDeMoteur) {
+    aStepper[pointeur].run();
+  } else {
+    //s.println("fin calibration");
+    waitBool = false;
     calibrationBool = false;
     setMovement(randomAnimation());
     pointeur = 0;
+
   }
 }
