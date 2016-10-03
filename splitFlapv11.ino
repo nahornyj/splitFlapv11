@@ -20,7 +20,8 @@ const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 
 const bool calibrationOnly    = true;
 const int nombreDeMoteur      = 8;
 const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
-const int frequenceCalibration = 2;                     //calibration toute les 20 animations
+//                 racourcir de :
+const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 1000;
@@ -50,14 +51,15 @@ bool arretSurZero             = false;
 bool premiereCaptation        = true;
 
 Adafruit_StepperMotor *stepperContainer[8] = {
-  AFMS4.getStepper(200, 1)/*1*/,
-  AFMS3.getStepper(200, 1)/*2*/,
-  AFMS2.getStepper(200, 1)/*3*/,
-  AFMS1.getStepper(200, 1)/*4*/,
-  AFMS1.getStepper(200, 2)/*5*/,
-  AFMS2.getStepper(200, 2)/*6*/,
-  AFMS3.getStepper(200, 2)/*7*/,
-  AFMS4.getStepper(200, 2)/*8*/,
+   AFMS1.getStepper(200, 2)/*1*/,
+  AFMS2.getStepper(200, 2)/*2*/,
+  AFMS3.getStepper(200, 2)/*3*/,
+  AFMS4.getStepper(200, 2)/*4*/,
+  AFMS1.getStepper(200, 1)/*5*/,
+  AFMS2.getStepper(200, 1)/*6*/,
+  AFMS3.getStepper(200, 1)/*7*/,
+  AFMS4.getStepper(200, 1)/*8*/,
+  
 };
 
 AccelStepper temp1(forwardstep1, backwardstep1);
@@ -75,7 +77,7 @@ AccelStepper aStepper[nombreDeMoteur] = {temp1, temp2, temp3, temp4, temp5, temp
 AnimationStepper anim;
 
 void setup() {
-
+ 
   //Serial
   s.begin(9600);
 
@@ -84,15 +86,16 @@ void setup() {
   AFMS2.begin();
   AFMS3.begin();
   AFMS4.begin();
-
+  
   //reglages des moteurs
   setGeneralValues(vitesseCalibration, accelerationCalibration);
 
-  //démarage hall sensors
 
   for (int i = 0; i < nombreDeMoteur; i++) {
     pinMode(capteur[i], INPUT);
+    stepperContainer[i]->onestep(FORWARD, DOUBLE);
   }
+  
 
   //setup movement
   setMovement(99); // animation de calibration pour commencer.
@@ -116,14 +119,16 @@ void setMovement(int Id) {
   if (Id == 99) {
     calibrationBool == true;
     for (int i = 0; i < nombreDeMoteur; i++) {
-      aStepper[i].setMaxSpeed(vitesseCalibration);
+      //aStepper[i].setMaxSpeed(vitesseCalibration);
+      aStepper[i].setSpeed(vitesseCalibration);
       aStepper[i].setAcceleration(accelerationCalibration);
       aStepper[i].move(9999);   // plusieurs tours pour être sur d'atteindre le capteur.
     }
   } else {
     numeroAnimation = Id;
     for (int i = 0; i < nombreDeMoteur; i++) {
-      aStepper[i].setMaxSpeed(vitesseAnimation);
+      //aStepper[i].setMaxSpeed(vitesseAnimation);
+       aStepper[i].setSpeed(vitesseCalibration);
       aStepper[i].setAcceleration(acceleration);
       aStepper[i].move(deplacement(absPosStepper[i], anim.getValue(numeroAnimation, curseur, i)));
 
@@ -146,54 +151,22 @@ void setMovement(int Id) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //FONCTIONS UTILITAIRES///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void forwardstep1() {
-  stepperContainer[0]->onestep(FORWARD, SINGLE);
-}
-void backwardstep1() {
-  stepperContainer[0]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep2() {
-  stepperContainer[1]->onestep(FORWARD, SINGLE);
-}
-void backwardstep2() {
-  stepperContainer[1]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep3() {
-  stepperContainer[2]->onestep(FORWARD, SINGLE);
-}
-void backwardstep3() {
-  stepperContainer[2]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep4() {
-  stepperContainer[3]->onestep(FORWARD, SINGLE);
-}
-void backwardstep4() {
-  stepperContainer[3]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep5() {
-  stepperContainer[4]->onestep(FORWARD, SINGLE);
-}
-void backwardstep5() {
-  stepperContainer[4]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep6() {
-  stepperContainer[5]->onestep(FORWARD, SINGLE);
-}
-void backwardstep6() {
-  stepperContainer[5]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep7() {
-  stepperContainer[6]->onestep(FORWARD, SINGLE);
-}
-void backwardstep7() {
-  stepperContainer[6]->onestep(BACKWARD, SINGLE);
-}
-void forwardstep8() {
-  stepperContainer[7]->onestep(FORWARD, SINGLE);
-}
-void backwardstep8() {
-  stepperContainer[7]->onestep(BACKWARD, SINGLE);
-}
+void forwardstep1() {  stepperContainer[0]->quickstep(FORWARD);}
+void backwardstep1() {  stepperContainer[0]->quickstep(BACKWARD);}
+void forwardstep2() {  stepperContainer[1]->quickstep(FORWARD);}
+void backwardstep2() {  stepperContainer[1]->quickstep(BACKWARD);}
+void forwardstep3() {  stepperContainer[2]->quickstep(FORWARD);}
+void backwardstep3() {  stepperContainer[2]->quickstep(BACKWARD);}
+void forwardstep4() { stepperContainer[3]->quickstep(FORWARD);}
+void backwardstep4() { stepperContainer[3]->quickstep(BACKWARD);}
+void forwardstep5() { stepperContainer[4]->quickstep(FORWARD);}
+void backwardstep5() {  stepperContainer[4]->quickstep(BACKWARD);}
+void forwardstep6() {  stepperContainer[5]->quickstep(FORWARD);}
+void backwardstep6() {  stepperContainer[5]->quickstep(BACKWARD);}
+void forwardstep7() {  stepperContainer[6]->quickstep(FORWARD);}
+void backwardstep7() {  stepperContainer[6]->quickstep(BACKWARD);}
+void forwardstep8() {  stepperContainer[7]->quickstep(FORWARD);}
+void backwardstep8() {  stepperContainer[7]->quickstep(BACKWARD);}
 
 void setGeneralValues(float vitesse, float accel) {
   for (int i = 0; i < nombreDeMoteur; i++) {
