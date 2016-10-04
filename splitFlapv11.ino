@@ -13,6 +13,8 @@ Adafruit_MotorShield AFMS3(0x62);                         // 00010
 Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
+const int debug               = true;
+const int debugAnim           = 2;
 const int box                 = 1;  //numéro de la boite :)
 const int offSetZero          = 0;                       //offset général à la suite de la calibration
 const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
@@ -20,7 +22,7 @@ const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 
 const bool calibrationOnly    = true;
 const int nombreDeMoteur      = 8;
 const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
-//                 racourcir de :
+//                 racourcir de :36,  0,16, 0, 0,28, 18,  0;
 const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
@@ -42,13 +44,14 @@ int actualTime                = 0;                       //utilitaire pour delay
 int targetTime                = 1;                       //utilitaire pour delay sans "delay()"
 bool waitBool                 = false;                   //utilitaire pour delay sans "delay()"
 bool capteurState[8]           = {LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; //états des capteurs 0 = Passage de l'aimant | 1 = rien
-int lastAnimation             = 0;                       //animation pécedente
+int lastAnimation[3]           = {99,99,99}              //animation pécedente
 int animationCounter          = 0;                       //compteur d'animation
 int positionPrecedente        = 0;
 bool oneTime                  = true;
 bool addoffset                = false;
 bool arretSurZero             = false;
 bool premiereCaptation        = true;
+int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
 
 Adafruit_StepperMotor *stepperContainer[8] = {
    AFMS1.getStepper(200, 2)/*1*/,
@@ -246,16 +249,29 @@ void wait(int DelayingTime) {
 int randomAnimation() {
   int value = 0;
   animationCounter++;
-  //s.println(animationCounter);
   if (animationCounter % frequenceCalibration == 0) {
     value = 99;
     calibrationBool = true; 
   } else {
-    value = 2;
+    for(int i = 0; i< sizeof(multipleRandom),i++){
+      multipleRandom[i] = floor(random(0,nombreAnimation-1));
+      if( multipleRandom[i] != lastAnimation[0] && multipleRandom[i] != lastAnimation[1] && multipleRandom[i] != lastAnimation[2]){
+        value = multipleRandom[i];
+        break;
+      }     
+    }     
+   
+    if(debug){
+      value = debugAnim;
+    }
     calibrationBool = false;
   }
-
-
+  
+  //décalage
+  lastAnimation[0] = lastAnimation[1];
+  lastAnimation[1] = lastAnimation[2];
+  lastAnimation[2] = value;
+  
   return value;
 }
 
