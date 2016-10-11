@@ -13,10 +13,10 @@ Adafruit_MotorShield AFMS3(0x62);                         // 00010
 Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
-const int debug               = true;
+const int debug               = false;
 const int debugAnim           = 0;
-const int box                 = 1;  //numéro de la boite :)
-const int offSetZero          = 0;                       //offset général à la suite de la calibration
+const int box                 = 1;                                                                                   //numéro de la boite :)
+const int offSetZero          = 0;                                                                                   //offset général à la suite de la calibration
 const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
 
 const bool calibrationOnly    = true;
@@ -25,13 +25,13 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                //05,01,02,03,04,00,I0,I1
                                //c1,c2,c3,c4,c5,c6,c7,c8
 //                 racourcir de :36,  0,16, 0, 0,28, 18,  0;
-const int frequenceCalibration = 10;                     //calibration toute les 20 animations
+const int frequenceCalibration = 20;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 1000;
 float acceleration            = 1000.0;
-int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 8;                       //il y a 3 animation dans la classe resources en ce moment.
+int nombreDEtape              = 17;                       //nombre d'étape dans une animation (commun a toutes les animations)
+const int nombreAnimation     = 7;                       //il y a 3 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
 
 //variables
@@ -56,7 +56,7 @@ bool premiereCaptation        = true;
 int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
 
 Adafruit_StepperMotor *stepperContainer[8] = {
-   AFMS1.getStepper(200, 2)/*1*/,
+  AFMS1.getStepper(200, 2)/*1*/,
   AFMS2.getStepper(200, 2)/*2*/,
   AFMS3.getStepper(200, 2)/*3*/,
   AFMS4.getStepper(200, 2)/*4*/,
@@ -95,17 +95,15 @@ void setup() {
   //reglages des moteurs
   setGeneralValues(vitesseCalibration, accelerationCalibration);
 
-
-  for (int i = 0; i < nombreDeMoteur; i++) {
+  //initialisation des steppeurs en mode rapide.
+  for (int i = 0; i < nombreDeMoteur; i++) { 
     pinMode(capteur[i], INPUT);
     stepperContainer[i]->quickstepInit();
-    //stepperContainer[i]->release();
   }
   
 
   //setup movement
   setMovement(99); // animation de calibration pour commencer.
-  //checkSensorPosition();
 }
 
 void loop() {
@@ -117,11 +115,7 @@ void loop() {
 
   } else {
     //update des animations en temps normal
-    updateAnimation();
-    Serial.print(delayingTime);
-    Serial.print(" ");
-    Serial.println(curseur);
-    
+    updateAnimation(); 
   }
 }
 void setMovement(int Id) {
@@ -229,7 +223,7 @@ void updateAnimation() {
       for (int i = 0; i < nombreDeMoteur; i++) {
         stepperContainer[i]->quickstepInit();
       }
-       Serial.print("release OFF");
+       //Serial.print("release OFF");
        targetTime = actualTime +1;
        if(curseur<nombreDEtape-1){
          curseur++;
@@ -271,7 +265,7 @@ void nextStep(int DelayingTime) {
     for (int i = 0; i < nombreDeMoteur; i++) {
       stepperContainer[i]->release();
     }
-    Serial.println("release ON");
+   // Serial.println("release ON");
   }
 }
 
@@ -303,7 +297,7 @@ int randomAnimation() {
   lastAnimation[0] = lastAnimation[1];
   lastAnimation[1] = lastAnimation[2];
   lastAnimation[2] = value;
-  
+  Serial.println(value);
   return value;
 }
 
