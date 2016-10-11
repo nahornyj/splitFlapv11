@@ -14,7 +14,7 @@ Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
 const int debug               = true;
-const int debugAnim           = 2;
+const int debugAnim           = 0;
 const int box                 = 1;  //numéro de la boite :)
 const int offSetZero          = 0;                       //offset général à la suite de la calibration
 const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
@@ -25,13 +25,13 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                //05,01,02,03,04,00,I0,I1
                                //c1,c2,c3,c4,c5,c6,c7,c8
 //                 racourcir de :36,  0,16, 0, 0,28, 18,  0;
-const int frequenceCalibration = 999999;                     //calibration toute les 20 animations
+const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 1000;
 float acceleration            = 1000.0;
 int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 4;                       //il y a 3 animation dans la classe resources en ce moment.
+const int nombreAnimation     = 8;                       //il y a 3 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
 
 //variables
@@ -329,6 +329,17 @@ void compteurDeStep() {
 void  calibration() {
    
   //si sur 0 -> go to 100step, a partir de là, va a 0.
+  ///////////////////////////////////////////////////////////// SAFE EXIT SI JAMAIS UN  CAPTEUR MERDE OU UN MOTEUR
+  if(aStepper[pointeur].currentPosition() > 1000){
+     aStepper[pointeur].move(0);
+    aStepper[pointeur].setCurrentPosition(0);
+    absPosStepper[pointeur] = 0;
+    pointeur++;
+
+    addoffset = false;
+    premiereCaptation = true;
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   capteurState[pointeur] = digitalRead(capteur[pointeur]);
   if (aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset) {
     //a fais soit 9999 step, soit 100 step depuis zero et donc bool changing
@@ -350,6 +361,7 @@ void  calibration() {
   }
   if (addoffset && aStepper[pointeur].distanceToGo() == 0) {
     aStepper[pointeur].move(0);
+    aStepper[pointeur].setCurrentPosition(0);
     absPosStepper[pointeur] = 0;
     pointeur++;
 
