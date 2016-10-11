@@ -54,6 +54,7 @@ bool addoffset                = false;
 bool arretSurZero             = false;
 bool premiereCaptation        = true;
 int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
+bool oneTimeDelay             = true;
 
 Adafruit_StepperMotor *stepperContainer[8] = {
   AFMS1.getStepper(200, 2)/*1*/,
@@ -91,13 +92,11 @@ void setup() {
   AFMS3.begin();
   AFMS4.begin();
   
-   
+   setGeneralValues(vitesseCalibration,accelerationCalibration);
   //initialisation des steppeurs en mode rapide.
   for (int i = 0; i < nombreDeMoteur; i++) { 
     pinMode(capteur[i], INPUT);
     stepperContainer[i]->quickstepInit();
-    aStepper[i].setSpeed(vitesseCalibration);
-    aStepper[i].setAcceleration(accelerationCalibration);
   }
   
 
@@ -177,72 +176,52 @@ int deplacement(int ActualPosition, int Destination) {
   return stepToMove;
 }
 
-void updateAnimation() {
-
-    decompteMoteur = 0;
-    for (int i = 0; i < nombreDeMoteur; i++) {
-      if (aStepper[i].distanceToGo() == 0 ) {
-        decompteMoteur++;
-      }
-      aStepper[i].run();
-    }
-  
-    if (decompteMoteur == nombreDeMoteur && waitBool == false) {
-      
-        nextStep(delayingTime);
-      
-    } 
+void updateAnimation() { 
  
-  if (waitBool) {
-    
-    actualTime = millis();
-   
-    if (actualTime > targetTime) {
-
-      waitBool = false;
-      delayingTime = 0;
-     
-      for (int i = 0; i < nombreDeMoteur; i++) {
-        stepperContainer[i]->quickstepInit();
-      }
-       targetTime = actualTime +1;
-       if(curseur<nombreDEtape-1){
-         curseur++;
-         setMovement(numeroAnimation);
-       } else{
-          curseur = 0;
-          setMovement(randomAnimation());
-       }       
+    if (decompteMoteur == nombreDeMoteur) {      
+        nextStep();         
     }
-  }
+    else{  
+  decompteMoteur = 0;    
+        for (int i = 0; i < nombreDeMoteur; i++) {
+          if (aStepper[i].distanceToGo() == 0 ) {
+            decompteMoteur++;
+          }
+          aStepper[i].run();
+        }    
+    }
 }
 
-void nextStep(int DelayingTime) {
+void nextStep() {
+  actualTime = millis();
   
-  int delayingTime = DelayingTime;
-  //avance le curseur + remise à zero
-  //sytème de delay
-  if (DelayingTime == 0 ) {
-   
-    waitBool = false;
-    
+  
+  if (delayingTime == 0 ) {       
     if (curseur < nombreDEtape - 1) {
       curseur++;
       setMovement(numeroAnimation);
     } else {
       curseur = 0;
       setMovement(randomAnimation());
-    }
+    }    
+    decompteMoteur = 0;
     
-  }
-  else {
-   
-    targetTime = millis() + DelayingTime;
-    waitBool = true;
-    
-    for (int i = 0; i < nombreDeMoteur; i++) {
-      stepperContainer[i]->release();
-    }
+  }else{  
+    if(oneTimeDelay){ 
+      targetTime = millis() + delayingTime;  
+      for (int i = 0; i < nombreDeMoteur; i++) {
+        stepperContainer[i]->release();
+      }  
+      oneTimeDelay = false;
+    }  
+    if(actualTime > targetTime ){
+       delayingTime = 0;
+       oneTimeDelay = true;
+       for(int i = 0;i<nombreDeMoteur;i++){
+          stepperContainer[i]->quickstepInit();
+       }
+       decompteMoteur = 0;      
+    }    
   }
 }
 
@@ -339,9 +318,7 @@ void checkSensorPosition() {
     capteurState[i] = digitalRead(capteur[i]);
   }
 }
-
 void compteurDeStep() {
-
   if (digitalRead(capteur[4]) == LOW && oneTime) {
     oneTime = false;
     int value = aStepper[4].currentPosition() - positionPrecedente;
@@ -351,8 +328,7 @@ void compteurDeStep() {
   if (digitalRead(capteur[4]) == HIGH) {
     oneTime = true;
   }
-}
-
+}*/
 void setGeneralValues(float vitesse, float accel) {
   for (int i = 0; i < nombreDeMoteur; i++) {
     aStepper[i].setMaxSpeed(vitesse);
@@ -360,4 +336,3 @@ void setGeneralValues(float vitesse, float accel) {
   }
 }
 
-*/
