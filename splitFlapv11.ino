@@ -21,15 +21,17 @@ const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 
 
 const bool calibrationOnly    = true;
 const int nombreDeMoteur      = 8;
-const int capteur[8]          = {11, 10, 9, 6, 5, 3, A0, A1};
+const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
+                               //05,01,02,03,04,00,I0,I1
+                               //c1,c2,c3,c4,c5,c6,c7,c8
 //                 racourcir de :36,  0,16, 0, 0,28, 18,  0;
-const int frequenceCalibration = 10;                     //calibration toute les 20 animations
+const int frequenceCalibration = 999999;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 1000;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 1000;
 float acceleration            = 1000.0;
 int nombreDEtape              = 8;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 3;                       //il y a 3 animation dans la classe resources en ce moment.
+const int nombreAnimation     = 4;                       //il y a 3 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
 
 //variables
@@ -44,7 +46,7 @@ int actualTime                = 0;                       //utilitaire pour delay
 int targetTime                = 1;                       //utilitaire pour delay sans "delay()"
 bool waitBool                 = false;                   //utilitaire pour delay sans "delay()"
 bool capteurState[8]           = {LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; //états des capteurs 0 = Passage de l'aimant | 1 = rien
-int lastAnimation[3]           = {99,99,99}              //animation pécedente
+int lastAnimation[3]           = {99,99,99} ;           //animation pécedente
 int animationCounter          = 0;                       //compteur d'animation
 int positionPrecedente        = 0;
 bool oneTime                  = true;
@@ -82,7 +84,7 @@ AnimationStepper anim;
 void setup() {
  
   //Serial
-  s.begin(9600);
+  Serial.begin(9600);
 
   //démarage des Shields
   AFMS1.begin();
@@ -96,7 +98,8 @@ void setup() {
 
   for (int i = 0; i < nombreDeMoteur; i++) {
     pinMode(capteur[i], INPUT);
-    stepperContainer[i]->onestep(FORWARD, DOUBLE);
+    stepperContainer[i]->quickstepInit();
+    //stepperContainer[i]->release();
   }
   
 
@@ -115,7 +118,10 @@ void loop() {
   } else {
     //update des animations en temps normal
     updateAnimation();
-
+    Serial.print(delayingTime);
+    Serial.print(" ");
+    Serial.println(curseur);
+    
   }
 }
 void setMovement(int Id) {
@@ -193,58 +199,82 @@ int deplacement(int ActualPosition, int Destination) {
 }
 
 void updateAnimation() {
-  
-  decompteMoteur = 0;
-  for (int i = 0; i < nombreDeMoteur; i++) {
-    if (aStepper[i].distanceToGo() == 0 ) {
-      decompteMoteur++;
+
+    
+    decompteMoteur = 0;
+    for (int i = 0; i < nombreDeMoteur; i++) {
+      if (aStepper[i].distanceToGo() == 0 ) {
+        decompteMoteur++;
+      }
+      aStepper[i].run();
     }
-    aStepper[i].run();
-  }
-
-  if (decompteMoteur == nombreDeMoteur && waitBool == false) {
-    nextStep(delayingTime);
-  }
-
+  
+    if (decompteMoteur == nombreDeMoteur && waitBool == false) {
+      
+        nextStep(delayingTime);
+      
+    } 
+ 
   if (waitBool) {
-    s.println("j'attend");
+    
+    //Serial.print("j'attend");
+    
     actualTime = millis();
-    if (actualTime >= targetTime) {
+   
+    if (actualTime > targetTime) {
+
       waitBool = false;
       delayingTime = 0;
-      setMovement(numeroAnimation);
+     
+      for (int i = 0; i < nombreDeMoteur; i++) {
+        stepperContainer[i]->quickstepInit();
+      }
+       Serial.print("release OFF");
+       targetTime = actualTime +1;
+       if(curseur<nombreDEtape-1){
+         curseur++;
+         setMovement(numeroAnimation);
+       } else{
+          curseur = 0;
+          setMovement(randomAnimation());
+       }
+       
+       
     }
   }
 }
 
 void nextStep(int DelayingTime) {
+  //Serial.println("nextStep()");
   int delayingTime = DelayingTime;
 
   //avance le curseur + remise à zero
-  if (curseur < nombreDEtape - 1) {
-    curseur++;
-  } else {
-    curseur = 0;
-    setMovement(randomAnimation());
-  }
-
   //sytème de delay
   if (DelayingTime == 0 ) {
-    setMovement(numeroAnimation);
+   
     waitBool = false;
+    
+    if (curseur < nombreDEtape - 1) {
+      curseur++;
+      setMovement(numeroAnimation);
+    } else {
+      curseur = 0;
+      setMovement(randomAnimation());
+    }
+    
   }
   else {
-    wait(delayingTime);
+   
+    targetTime = millis() + DelayingTime;
     waitBool = true;
+    
+    for (int i = 0; i < nombreDeMoteur; i++) {
+      stepperContainer[i]->release();
+    }
+    Serial.println("release ON");
   }
 }
 
-void wait(int DelayingTime) {
-  int delayingTime = DelayingTime;
-  actualTime = millis();
-  targetTime = millis() + delayingTime;
- 
-}
 
 int randomAnimation() {
   int value = 0;
@@ -253,15 +283,17 @@ int randomAnimation() {
     value = 99;
     calibrationBool = true; 
   } else {
-    for(int i = 0; i< sizeof(multipleRandom),i++){
+    for(int i = 0; i< sizeof(multipleRandom);i++){
       multipleRandom[i] = floor(random(0,nombreAnimation-1));
       if( multipleRandom[i] != lastAnimation[0] && multipleRandom[i] != lastAnimation[1] && multipleRandom[i] != lastAnimation[2]){
         value = multipleRandom[i];
+        i = 0;
         break;
       }     
     }     
    
     if(debug){
+    
       value = debugAnim;
     }
     calibrationBool = false;
@@ -295,7 +327,7 @@ void compteurDeStep() {
 }
 
 void  calibration() {
-
+   
   //si sur 0 -> go to 100step, a partir de là, va a 0.
   capteurState[pointeur] = digitalRead(capteur[pointeur]);
   if (aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset) {
