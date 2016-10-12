@@ -26,7 +26,9 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                                          //05,01,02,03,04,00,I0,I1
                                                          //c1,c2,c3,c4,c5,c6,c7,c8
                                                          //racourcir de :36,  0,16, 0, 0,28, 18,  0;
+const int calibFinalPosition[8] = {48, 40, 32, 192, 24, 16, 8, 0} ;                                                        
 const int boundaryTiming[2]    = {5,10};
+const int delayAlafinDeLaCalibration = 10000;
 const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 100;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
@@ -59,6 +61,8 @@ bool premiereCaptation        = true;
 bool oneTimeDelay             = true;
 unsigned long targetTimeAnim  = 0;
 bool oneTimeDelayAnim         = true;
+bool oneTimeCalib             = true;
+unsigned long delayCalib      = 0;
 Adafruit_StepperMotor *stepperContainer[8] = {
   AFMS1.getStepper(200, 2)/*1*/,
   AFMS2.getStepper(200, 2)/*2*/,
@@ -241,57 +245,29 @@ void nextStep() {
     }  
 }
 
-/*
-int randomAnimation() {
-  int value = 0;
-  animationCounter++;
-  if (animationCounter % frequenceCalibration == 0) {
-    value = 99;
-    calibrationBool = true; 
-  } else {
-    for(int i = 0; i< sizeof(multipleRandom);i++){
-      multipleRandom[i] = floor(random(0,nombreAnimation-1));
-      if( multipleRandom[i] != lastAnimation[0] && multipleRandom[i] != lastAnimation[1] && multipleRandom[i] != lastAnimation[2]){
-        value = multipleRandom[i];
-        i = 0;
-        break;
-      }     
-    }     
-   
-    if(debug){
-    
-      value = floor(random(0,7));
-    }
-    calibrationBool = false;
-  }
-*/
+
 int randomAnimation(bool Redo){
   int value = 0;
   if(!Redo){
     animationCounter++;
   }
-  /*Serial.print(" animationCounter : ");
-  Serial.println(animationCounter);*/
-  value = floor(random(0,nombreAnimation-1));
+  value = floor(random(0,nombreAnimation));
   if (animationCounter % frequenceCalibration == 0) {
     
     value = 99;
     for(int i = 0; i<nombreDeMoteur ; i++){
-      aStepper[i].setCurrentPosition(0);
-      //aStepper[pointeur].move(0);   
+      aStepper[i].setCurrentPosition(0);   
     }
     calibrationBool = true; 
-    //animationCounter = 0;
+
     /////////////
-    Serial.print("Animation numéro : ");
-    Serial.println(value);
     return value;
     /////////////
   } else {
     if(value == lastAnimation[0] || value == lastAnimation[1] || value == lastAnimation[2]){
       /////////////////////////
       return randomAnimation(true);
-      return value;
+      //return value;
       /////////////////////////
     }
     else{
@@ -299,8 +275,6 @@ int randomAnimation(bool Redo){
       lastAnimation[1] = lastAnimation[0];
       lastAnimation[0] = value;
       /////////////
-      Serial.print("Animation numéro : ");
-      Serial.println(value);
       return value;
       /////////////
     }
@@ -337,14 +311,17 @@ void  calibration() {
     }
     if (arretSurZero) {
       arretSurZero = false;
-      aStepper[pointeur].move(10);
+      //si arrivé a destination bouge a la position fini et actualise l'absPosStepper
+      aStepper[pointeur].move(10+calibFinalPosition[pointeur]);
       addoffset = true;
     }
   }
   if (addoffset && aStepper[pointeur].distanceToGo() == 0) {
+    
     aStepper[pointeur].move(0);
     aStepper[pointeur].setCurrentPosition(0);
-    absPosStepper[pointeur] = 0;
+    absPosStepper[pointeur] = calibFinalPosition[pointeur];
+    absPosStepper[pointeur] = absPosStepper[pointeur] % 200;
     
     pointeur++;
 
@@ -356,11 +333,19 @@ void  calibration() {
     aStepper[pointeur].run();
   } else {
     //s.println("fin calibration");
-    waitBool = false;
-    calibrationBool = false;
-    setMovement(randomAnimation(false));
-    pointeur = 0;
-
+    //calibrationBool = true;
+    actualTime = millis();
+    if(oneTimeCalib){
+      delayCalib = millis()+delayAlafinDeLaCalibration*1000;
+      actualTime = millis();
+      oneTimeCalib = false;
+    }
+    if(actualTime > delayCalib){
+      waitBool = false;
+      calibrationBool = false;
+      setMovement(randomAnimation(false));
+      pointeur = 0;
+    }
   }
 }
 
