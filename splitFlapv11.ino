@@ -13,7 +13,8 @@ Adafruit_MotorShield AFMS3(0x62);                         // 00010
 Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
-const bool debug               = false;
+const bool boolRelease         = false;                   //fonction release;
+const bool debug               = true;
 const int debugAnim           = 0;
 //const int box                 = 1;                                                                                   //numéro de la boite :)
 const int offSetZero          = 0;                                                                                   //offset général à la suite de la calibration
@@ -25,10 +26,11 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                                          //05,01,02,03,04,00,I0,I1
                                                          //c1,c2,c3,c4,c5,c6,c7,c8
                                                          //racourcir de :36,  0,16, 0, 0,28, 18,  0;
+const int boundaryTiming[2]    = {5,10};
 const int frequenceCalibration = 20;                     //calibration toute les 20 animations
-const int vitesseCalibration  = 1000;                    //vitesse calibration.
+const int vitesseCalibration  = 100;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
-const int vitesseAnimation    = 1000;
+const int vitesseAnimation    = 100;
 float acceleration            = 1000.0;
 int nombreDEtape              = 17;                       //nombre d'étape dans une animation (commun a toutes les animations)
 const int nombreAnimation     = 7;                       //il y a 3 animation dans la classe resources en ce moment.
@@ -42,8 +44,8 @@ int delayingTime              = 0;
 int absPosStepper[8]          = {0, 0, 0, 0, 0, 0, 0, 0};//position absolu des steppers par rapport au zero défini dans la phase de calibration
 bool calibrationBool          = true;                    //vrai pendant la calibration
 int decompteMoteur            = 0;                       //valeur incrémentale, quand elle est égale au nombre de moteur, cela veut dire qu'ils ont tous fini leur animation
-int actualTime                = 0;                       //utilitaire pour delay sans "delay()"
-int targetTime                = 1;                       //utilitaire pour delay sans "delay()"
+unsigned long actualTime                = 0;                       //utilitaire pour delay sans "delay()"
+unsigned long targetTime                = 1;                       //utilitaire pour delay sans "delay()"
 bool waitBool                 = false;                   //utilitaire pour delay sans "delay()"
 bool capteurState[8]           = {LOW, LOW, LOW, LOW, LOW, LOW, LOW, LOW}; //états des capteurs 0 = Passage de l'aimant | 1 = rien
 int lastAnimation[3]           = {99,99,99} ;            //animation pécedente
@@ -55,7 +57,8 @@ bool arretSurZero             = false;
 bool premiereCaptation        = true;
 int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
 bool oneTimeDelay             = true;
-
+unsigned long targetTimeAnim  = 0;
+bool oneTimeDelayAnim         = true;
 Adafruit_StepperMotor *stepperContainer[8] = {
   AFMS1.getStepper(200, 2)/*1*/,
   AFMS2.getStepper(200, 2)/*2*/,
@@ -194,35 +197,52 @@ void updateAnimation() {
 
 void nextStep() {
   actualTime = millis();
-  
-  
-  if (delayingTime == 0 ) {       
-    if (curseur < nombreDEtape - 1) {
-      curseur++;
-      setMovement(numeroAnimation);
-    } else {
-      curseur = 0;
-      setMovement(randomAnimation());
-    }    
-    decompteMoteur = 0;
-    
-  }else{  
-    if(oneTimeDelay){ 
-      targetTime = millis() + delayingTime;  
-      for (int i = 0; i < nombreDeMoteur; i++) {
-        stepperContainer[i]->release();
+   Serial.print(" targetTimeAnim : ");
+   Serial.print(targetTimeAnim);
+   Serial.print(" | actualTime : ");
+   Serial.println(actualTime);
+       
+    if (delayingTime == 0 ) {       
+      if (curseur < nombreDEtape - 1) {
+        curseur++;
+        setMovement(numeroAnimation);
+        decompteMoteur = 0;
+      } else {     
+      
+        if(oneTimeDelayAnim){
+          targetTimeAnim = millis() + floor(random(boundaryTiming[0] ,boundaryTiming[1] ));;
+          actualTime = millis();
+          oneTimeDelayAnim = false;
+        }
+        if(actualTime > targetTimeAnim){
+          oneTimeDelayAnim = true;
+          curseur = 0;   
+          decompteMoteur = 0;
+          setMovement(randomAnimation()); 
+        }
+      }    
+      
+      }else{  
+      if(oneTimeDelay){ 
+        targetTime = millis() + delayingTime;
+        if(boolRelease){  
+          for (int i = 0; i < nombreDeMoteur; i++) {
+            stepperContainer[i]->release();
+          }  
+        }
+        oneTimeDelay = false;
       }  
-      oneTimeDelay = false;
+      if(actualTime > targetTime ){
+         delayingTime = 0;
+         oneTimeDelay = true;
+          if(boolRelease){ 
+             for(int i = 0;i<nombreDeMoteur;i++){
+                stepperContainer[i]->quickstepInit();
+             }
+          }
+         decompteMoteur = 0;      
+      }    
     }  
-    if(actualTime > targetTime ){
-       delayingTime = 0;
-       oneTimeDelay = true;
-       for(int i = 0;i<nombreDeMoteur;i++){
-          stepperContainer[i]->quickstepInit();
-       }
-       decompteMoteur = 0;      
-    }    
-  }
 }
 
 
@@ -244,7 +264,7 @@ int randomAnimation() {
    
     if(debug){
     
-      value = debugAnim;
+      value = floor(random(0,7));
     }
     calibrationBool = false;
   }
@@ -253,6 +273,7 @@ int randomAnimation() {
   lastAnimation[0] = lastAnimation[1];
   lastAnimation[1] = lastAnimation[2];
   lastAnimation[2] = value;
+  Serial.print("random Animation ");
   Serial.println(value);
   return value;
 }
@@ -335,4 +356,3 @@ void setGeneralValues(float vitesse, float accel) {
     aStepper[i].setAcceleration(accel);
   }
 }
-
