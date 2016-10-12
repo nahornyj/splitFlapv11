@@ -27,7 +27,7 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                                          //c1,c2,c3,c4,c5,c6,c7,c8
                                                          //racourcir de :36,  0,16, 0, 0,28, 18,  0;
 const int boundaryTiming[2]    = {5,10};
-const int frequenceCalibration = 20;                     //calibration toute les 20 animations
+const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 100;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 100;
@@ -55,7 +55,7 @@ bool oneTime                  = true;
 bool addoffset                = false;
 bool arretSurZero             = false;
 bool premiereCaptation        = true;
-int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
+//int multipleRandom[20]        = {99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99,99};
 bool oneTimeDelay             = true;
 unsigned long targetTimeAnim  = 0;
 bool oneTimeDelayAnim         = true;
@@ -197,11 +197,7 @@ void updateAnimation() {
 
 void nextStep() {
   actualTime = millis();
-   Serial.print(" targetTimeAnim : ");
-   Serial.print(targetTimeAnim);
-   Serial.print(" | actualTime : ");
-   Serial.println(actualTime);
-       
+      
     if (delayingTime == 0 ) {       
       if (curseur < nombreDEtape - 1) {
         curseur++;
@@ -210,7 +206,7 @@ void nextStep() {
       } else {     
       
         if(oneTimeDelayAnim){
-          targetTimeAnim = millis() + floor(random(boundaryTiming[0] ,boundaryTiming[1] ));;
+          targetTimeAnim = millis() + floor(random(boundaryTiming[0] ,boundaryTiming[1] ))*1000; //random delay inter-animation
           actualTime = millis();
           oneTimeDelayAnim = false;
         }
@@ -218,7 +214,7 @@ void nextStep() {
           oneTimeDelayAnim = true;
           curseur = 0;   
           decompteMoteur = 0;
-          setMovement(randomAnimation()); 
+          setMovement(randomAnimation(false)); 
         }
       }    
       
@@ -245,7 +241,7 @@ void nextStep() {
     }  
 }
 
-
+/*
 int randomAnimation() {
   int value = 0;
   animationCounter++;
@@ -268,22 +264,55 @@ int randomAnimation() {
     }
     calibrationBool = false;
   }
-  
-  //décalage
-  lastAnimation[0] = lastAnimation[1];
-  lastAnimation[1] = lastAnimation[2];
-  lastAnimation[2] = value;
-  Serial.print("random Animation ");
-  Serial.println(value);
-  return value;
+*/
+int randomAnimation(bool Redo){
+  int value = 0;
+  if(!Redo){
+    animationCounter++;
+  }
+  /*Serial.print(" animationCounter : ");
+  Serial.println(animationCounter);*/
+  value = floor(random(0,nombreAnimation-1));
+  if (animationCounter % frequenceCalibration == 0) {
+    
+    value = 99;
+    for(int i = 0; i<nombreDeMoteur ; i++){
+      aStepper[i].setCurrentPosition(0);
+      //aStepper[pointeur].move(0);   
+    }
+    calibrationBool = true; 
+    //animationCounter = 0;
+    /////////////
+    Serial.print("Animation numéro : ");
+    Serial.println(value);
+    return value;
+    /////////////
+  } else {
+    if(value == lastAnimation[0] || value == lastAnimation[1] || value == lastAnimation[2]){
+      /////////////////////////
+      return randomAnimation(true);
+      return value;
+      /////////////////////////
+    }
+    else{
+      lastAnimation[2] = lastAnimation[1];
+      lastAnimation[1] = lastAnimation[0];
+      lastAnimation[0] = value;
+      /////////////
+      Serial.print("Animation numéro : ");
+      Serial.println(value);
+      return value;
+      /////////////
+    }
+  }
 }
-
+  
 void  calibration() {
-   
-
+  
   ///////////////////////////////////////////////////////////// SAFE EXIT SI JAMAIS UN  CAPTEUR MERDE OU UN MOTEUR
-  if(aStepper[pointeur].currentPosition() > 1000){
-     aStepper[pointeur].move(0);
+ 
+ if(aStepper[pointeur].currentPosition() > 1000){
+    aStepper[pointeur].move(0);
     aStepper[pointeur].setCurrentPosition(0);
     absPosStepper[pointeur] = 0;
     pointeur++;
@@ -291,6 +320,7 @@ void  calibration() {
     addoffset = false;
     premiereCaptation = true;
   }
+  
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   capteurState[pointeur] = digitalRead(capteur[pointeur]);
   if (aStepper[pointeur].distanceToGo() == 0 && !premiereCaptation && !addoffset) {
@@ -315,6 +345,7 @@ void  calibration() {
     aStepper[pointeur].move(0);
     aStepper[pointeur].setCurrentPosition(0);
     absPosStepper[pointeur] = 0;
+    
     pointeur++;
 
     addoffset = false;
@@ -327,7 +358,7 @@ void  calibration() {
     //s.println("fin calibration");
     waitBool = false;
     calibrationBool = false;
-    setMovement(randomAnimation());
+    setMovement(randomAnimation(false));
     pointeur = 0;
 
   }
