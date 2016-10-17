@@ -13,9 +13,11 @@ Adafruit_MotorShield AFMS3(0x62);                         // 00010
 Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
+const int nombreDEtape        = 17;                       //nombre d'étape dans une animation (commun a toutes les animations)
+const int nombreAnimation     = 5;                       //il y a 3 animation dans la classe resources en ce moment.
 const bool boolRelease         = false;                   //fonction release;
 const bool debug               = true;
-const int debugAnim           = 0;
+const int debugAnim           = 2;
 //const int box                 = 1;                                                                                   //numéro de la boite :)
 const int offSetZero          = 0;                                                                                   //offset général à la suite de la calibration
 //const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
@@ -28,14 +30,12 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                                          //racourcir de :36,  0,16, 0, 0,28, 18,  0;
 const int calibFinalPosition[8] = {48, 40, 32, 192, 24, 16, 8, 0} ;                                                        
 const int boundaryTiming[2]    = {5,10};
-const int delayAlafinDeLaCalibration = 10000;
+const int delayAlafinDeLaCalibration = 10;              //en secondes
 const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 100;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
 const int vitesseAnimation    = 100;
 float acceleration            = 1000.0;
-int nombreDEtape              = 17;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 7;                       //il y a 3 animation dans la classe resources en ce moment.
 const int temporaire          = 0;
 
 //variables
@@ -135,7 +135,7 @@ void setMovement(int Id) {
   } else {
     numeroAnimation = Id;
     for (int i = 0; i < nombreDeMoteur; i++) {
-       aStepper[i].setSpeed(vitesseCalibration);
+       aStepper[i].setSpeed(vitesseAnimation);
       aStepper[i].setAcceleration(acceleration);
       aStepper[i].move(deplacement(absPosStepper[i], anim.getValue(numeroAnimation, curseur, i)));
 
@@ -247,37 +247,44 @@ void nextStep() {
 
 
 int randomAnimation(bool Redo){
-  int value = 0;
-  if(!Redo){
-    animationCounter++;
-  }
-  value = floor(random(0,nombreAnimation));
-  if (animationCounter % frequenceCalibration == 0) {
-    
-    value = 99;
-    for(int i = 0; i<nombreDeMoteur ; i++){
-      aStepper[i].setCurrentPosition(0);   
-    }
-    calibrationBool = true; 
-
-    /////////////
-    return value;
-    /////////////
-  } else {
-    if(value == lastAnimation[0] || value == lastAnimation[1] || value == lastAnimation[2]){
-      /////////////////////////
-      return randomAnimation(true);
-      //return value;
-      /////////////////////////
+  
+    if(debug){
+      return debugAnim;
     }
     else{
-      lastAnimation[2] = lastAnimation[1];
-      lastAnimation[1] = lastAnimation[0];
-      lastAnimation[0] = value;
-      /////////////
-      return value;
-      /////////////
-    }
+   
+      int value = 0;
+      if(!Redo){
+        animationCounter++;
+      }
+      value = floor(random(0,nombreAnimation));
+      if (animationCounter % frequenceCalibration == 0) {
+        
+        value = 99;
+        for(int i = 0; i<nombreDeMoteur ; i++){
+          aStepper[i].setCurrentPosition(0);   
+        }
+        calibrationBool = true; 
+    
+        /////////////
+        return value;
+        /////////////
+      } else {
+        if(value == lastAnimation[0] || value == lastAnimation[1] || value == lastAnimation[2]){
+          /////////////////////////
+          return randomAnimation(true);
+          //return value;
+          /////////////////////////
+        }
+        else{
+          lastAnimation[2] = lastAnimation[1];
+          lastAnimation[1] = lastAnimation[0];
+          lastAnimation[0] = value;
+          /////////////
+          return value;
+          /////////////
+        }
+      }
   }
 }
   
