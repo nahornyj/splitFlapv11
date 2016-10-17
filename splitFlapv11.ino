@@ -3,9 +3,6 @@
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <AnimationStepper.h> //library perso
-#include <SoftwareSerial.h>
-
-SoftwareSerial s(12, 13); // RX, TX
 
 Adafruit_MotorShield AFMS1(0x60);                         // Default address, no jumpers 00000
 Adafruit_MotorShield AFMS2(0x61);                         // 00001
@@ -14,10 +11,10 @@ Adafruit_MotorShield AFMS4(0x63);                         // 00011
 
 //variables statiques
 const int nombreDEtape        = 17;                       //nombre d'étape dans une animation (commun a toutes les animations)
-const int nombreAnimation     = 5;                       //il y a 3 animation dans la classe resources en ce moment.
+const int nombreAnimation     = 7;                       //il y a 3 animation dans la classe resources en ce moment.
 const bool boolRelease         = false;                   //fonction release;
-const bool debug               = true;
-const int debugAnim           = 2;
+const bool debug               = false;
+const int debugAnim           = 7;
 //const int box                 = 1;                                                                                   //numéro de la boite :)
 const int offSetZero          = 0;                                                                                   //offset général à la suite de la calibration
 //const int boxOffset[3][8]     = {{0, 0, 0, 0, 0, 0, 0, 0},   {0, 0, 0, 0, 0, 0, 0, 0},    {0, 0, 0, 0, 0, 0, 0, 0}}; //offset pécis
@@ -29,8 +26,8 @@ const int capteur[8]          = {3, 10, 9, 6, 5, 11, A0, A1};
                                                          //c1,c2,c3,c4,c5,c6,c7,c8
                                                          //racourcir de :36,  0,16, 0, 0,28, 18,  0;
 const int calibFinalPosition[8] = {48, 40, 32, 192, 24, 16, 8, 0} ;                                                        
-const int boundaryTiming[2]    = {5,10};
-const int delayAlafinDeLaCalibration = 10;              //en secondes
+const int boundaryTiming[2]    = {25,40};
+const int delayAlafinDeLaCalibration = 2;              //en secondes
 const int frequenceCalibration = 10;                     //calibration toute les 20 animations
 const int vitesseCalibration  = 100;                    //vitesse calibration.
 const int accelerationCalibration = 1000;
@@ -249,6 +246,7 @@ void nextStep() {
 int randomAnimation(bool Redo){
   
     if(debug){
+      Serial.println(debugAnim);
       return debugAnim;
     }
     else{
@@ -267,6 +265,7 @@ int randomAnimation(bool Redo){
         calibrationBool = true; 
     
         /////////////
+         Serial.println(value);
         return value;
         /////////////
       } else {
@@ -281,6 +280,7 @@ int randomAnimation(bool Redo){
           lastAnimation[1] = lastAnimation[0];
           lastAnimation[0] = value;
           /////////////
+          Serial.println(value);
           return value;
           /////////////
         }
